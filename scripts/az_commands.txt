@@ -1,3 +1,0 @@
-# Paste your az commands here, example:
-# az group create --name MYRG --location northeurope
-# az vm create --resource-group MYRG --name MyVM --image Win2019Datacenter --size Standard_B1s --admin-username azureuser --admin-password 'Passw0rd!'

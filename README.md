@@ -1,16 +1,13 @@
 # Azure Honeypot Project
 
 ##  Purpose & Research Goal
-The primary goal of this project is to **observe and investigate real-world attack traffic** directed at an exposed Windows VM using Microsoft Azure as the platform.  
-Rather than running simulated scans or synthetic traffic, the project intentionally exposes a controlled honeypot to the public internet so we can study how attackers behave in the wild — which IP ranges attempt connections, what usernames and credentials are targeted, which tools/patterns (brute-force, scanners) are used, and how quickly attacks arrive after exposure.
+This project demonstrates how to deploy and operate a simple honeypot in Microsoft Azure to collect, enrich and visualize real-world attack attempts. The honeypot consists of a single Windows virtual machine deliberately exposed to the internet (RDP open) to attract brute-force login attempts. Collected telemetry is shipped to a Log Analytics Workspace and ingested into Microsoft Sentinel where it is enriched with GeoIP data and visualized as an attack map.
 
-Key research questions:
-- How quickly does a newly exposed RDP endpoint attract brute-force attempts?
-- Which geographic regions and IP ranges generate the most traffic?
-- What usernames and passwords are most commonly attempted?
-- Can Azure-native tools (Log Analytics + Sentinel) provide a reliable pipeline for collecting, enriching, and visualizing this traffic?
-
-This project uses Azure because it offers a managed, reproducible environment (VMs, NSGs, Network Watcher, Log Analytics, Sentinel) that makes it straightforward to collect logs, enrich data (GeoIP), and visualize attacker behavior with minimal infrastructure overhead.
+### Scope and assumptions
+- Lab-only setup: all resources are owned by the tester and run in an isolated subscription.  
+- The VM is used for monitoring only (no production data).  
+- GeoIP enrichment uses a static watchlist (geoip-summarized.csv); results depend on that dataset’s accuracy.  
+- This is an IDS/logging exercise (not an active blocking IPS).
 
 ---
 
@@ -18,39 +15,40 @@ This project uses Azure because it offers a managed, reproducible environment (V
 
 ### 1. Subscription and Resource Setup
 - Created an Azure subscription and a dedicated resource group (`JM_SOC_Lab`) to isolate the experiment.  
-- Rationale: keeping all resources grouped makes it easy to manage lifecycle, billing, and deletion. It also reduces the risk of accidentally exposing production resources.
+- Why: Using a dedicated resource group makes it easier to keep track of all resources related to the honeypot. It also allows you to delete everything at once when the project is finished, which helps avoid unnecessary costs and prevents accidental exposure of production resources
 
 ### 2. Virtual Machine Deployment (the attack surface)
 - Deployed a Windows VM named **CORP-Net-Middle** with a public IP (48.220.32.93).  
-- Rationale: A Windows endpoint with RDP open is a realistic and commonly encountered attack surface in enterprise environments.
+- Why: Windows machines with open RDP are one of the most commonly targeted systems on the internet. By creating such a machine, it becomes a realistic “bait” for automated scanners and brute-force attacks, making it ideal for collecting real-world attack data.
 
 ### 3. Network Security Group (NSG) configuration
 - Configured the NSG to allow inbound RDP (3389/TCP) from any source.  
-- Rationale: Intentionally opening RDP causes the VM to be visible to internet-wide scanners and attackers, enabling collection of unsolicited malicious traffic.
+- Why: Allowing RDP from anywhere exposes the VM to the wider internet, which ensures that attackers can find and attempt to log in. This is unsafe for a production environment but useful for a honeypot because it attracts activity quickly.
 
 ### 4. Validating reachability
 - Performed connectivity tests (ping, RDP connection attempts) to ensure the VM was reachable.  
-- Rationale: Confirming reachability ensures that subsequent logs represent real inbound attempts rather than failing configuration.
+- Why: Before analyzing attack logs, it is important to confirm that the VM is actually reachable. If connectivity is blocked, no real data would be collected. Testing ensures that any failed logins seen in the logs are genuine attempts from the internet.
 
 ### 5. Generating and Capturing Events
 - Conducted controlled failed logins (`employee`) and confirmed Event ID 4625 appeared in Windows Security logs.  
-- Rationale: Verifying logging ensures the monitoring pipeline captures authentication failures once live attacks begin.
+- Why: Controlled failed logins help verify that the monitoring pipeline works correctly. By seeing Event ID 4625 appear, you confirm that authentication failures are captured. This gives confidence that real attacker activity will also be recorded
 
 ### 6. Centralized Logging via Log Analytics (LAW)
 - Created a Log Analytics Workspace and installed the Azure Monitor Agent on the VM.  
-- Rationale: LAW provides a centralized, searchable store for events; it is required for Sentinel integration.
+- Why: LAW collects and stores logs in one central place, instead of leaving them only on the VM. Centralized storage makes it possible to run queries across multiple events, keep historical records, and prepare the data for use in Sentinel.
+
 
 ### 7. Microsoft Sentinel integration
 - Enabled Sentinel and connected it to LAW. Configured the **Windows Security Events** connector via AMA.  
-- Rationale: Sentinel provides KQL-based querying, automated enrichment, and workbooks for visualization—tools commonly used by SOC analysts.
+- Why: Sentinel acts as the SIEM (Security Information and Event Management) system. It allows you to query logs using KQL, set up alerts, and build dashboards. This turns raw log data into something analysts can easily understand and use to detect patterns or suspicious behavior.
 
 ### 8. GeoIP enrichment (watchlist)
 - Imported `geoip-summarized.csv` as a Sentinel Watchlist and used `ipv4_lookup()` in KQL to convert IP addresses to city/country coordinates.  
-- Rationale: Adding geographic metadata allows the visualization of attacker distribution on a map and supports geographic analysis.
+- Why: Raw IP addresses are hard to interpret. By enriching them with geographic data, you can see which countries and regions are responsible for login attempts. This adds context to the analysis and makes it possible to present results visually on a map.
 
 ### 9. Attack Map workbook
 - Built a workbook (map.json) in Sentinel to visualize failed login attempts by location and time.  
-- Rationale: A visual attack map makes patterns obvious (clusters, spikes, repeat offenders) and is helpful for reporting and teaching.
+- Why: Seeing attack data on a map provides an immediate and intuitive understanding of the scale and origin of the attacks. It helps to identify clusters, spot repeated attackers from certain regions, and makes the findings more engaging and useful for reporting or presentations.
 
 ---
 
