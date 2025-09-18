@@ -1,62 +1,112 @@
-# Project 3 – Azure Honeypot
+# Azure Honeypot Project
 
-## 📌 Overview
-This project demonstrates the setup of a honeypot in Microsoft Azure to collect and analyze real-world attack attempts against a virtual machine (VM).  
-The purpose is to practice data collection (Event Logs, NSG flow logs, packet captures), enrichment with GeoIP data, and visualization of attack sources using Microsoft Sentinel.
+##  Purpose & Research Goal
+The primary goal of this project is to **observe and investigate real-world attack traffic** directed at an exposed Windows VM using Microsoft Azure as the platform.  
+Rather than running simulated scans or synthetic traffic, the project intentionally exposes a controlled honeypot to the public internet so we can study how attackers behave in the wild — which IP ranges attempt connections, what usernames and credentials are targeted, which tools/patterns (brute-force, scanners) are used, and how quickly attacks arrive after exposure.
 
-## 🛠️ Method
-1. Created an Azure subscription and a dedicated resource group.  
-2. Deployed a Windows VM and configured the Network Security Group (NSG) to allow inbound traffic (RDP/other).  
-3. Adjusted Windows Firewall for the lab environment.  
-4. Generated failed login attempts (Event ID 4625) to validate log collection.  
-5. Created a Log Analytics Workspace (LAW) and connected Microsoft Sentinel.  
-6. Imported a GeoIP watchlist (CSV) to Sentinel to enrich IP addresses with geographic data.  
-7. Built a Sentinel Workbook (attack map) to visualize login attempts on a world map.
+Key research questions:
+- How quickly does a newly exposed RDP endpoint attract brute-force attempts?
+- Which geographic regions and IP ranges generate the most traffic?
+- What usernames and passwords are most commonly attempted?
+- Can Azure-native tools (Log Analytics + Sentinel) provide a reliable pipeline for collecting, enriching, and visualizing this traffic?
 
-## 📂 Project Structure
-- **screenshots/**  
-  Screenshots from the Azure portal and Sentinel (VM creation, NSG rules, Event Viewer, LAW, Sentinel connector, watchlist import, KQL queries, attack map).
-
-- **logs/**  
-  Raw data and exports:  
-  - `nsg_flowlog.json` – Example NSG flow log.  
-  - `securityevents_4625.csv` – Exported failed login events.  
-  - `geoip-summarized.csv` – GeoIP dataset used for enrichment.  
-
-- **scripts/**  
-  Commands and queries used:  
-  - `az_commands.txt` – Azure CLI commands for setup.  
-  - `kql_queries.txt` – KQL queries (failed login, aggregation, ipv4_lookup).  
-  - `map.json` – JSON definition for the attack map workbook.  
-
-- **figures/**  
-  Final visualizations:  
-  - `geolocation_map.png` – World map of login attempts.  
-  - `top10_ips.png` – Bar chart of top attacker IPs.  
-  - `timeline_attempts.png` – Time series of attack attempts.  
-
-## 🔎 Results (to be filled in)
-- Total number of attempts: **(fill in)**  
-- Most common usernames: **(fill in)**  
-- Most targeted ports: **(fill in)**  
-- Top 5 countries/IP sources: **(fill in)**  
-
-## ⚖️ Ethics and Privacy
-- Data was collected in an isolated lab environment using resources I own.  
-- Raw data that may contain personally identifiable information (PII), such as IP addresses, will be anonymized before sharing.  
-- PCAP/JSON files containing sensitive data should not be publicly shared without anonymization.  
-
-## 💰 Cost Management
-- Used Azure free-tier where possible.  
-- VM was deallocated/deleted after testing to minimize cost.  
-- Estimated and actual costs can be documented separately if needed.  
-
-## 🧭 Reproduction Guide (short)
-1. Use `scripts/az_commands.txt` for resource group, VM, NSG, LAW setup and flow log activation.  
-2. Use `scripts/kql_queries.txt` for basic queries (EventID==4625, ipv4_lookup with watchlist).  
-3. Place `geoip-summarized.csv` in `logs/` and import it as a Watchlist in Sentinel.  
-4. Import `scripts/map.json` into Sentinel Workbook editor to recreate the attack map.  
+This project uses Azure because it offers a managed, reproducible environment (VMs, NSGs, Network Watcher, Log Analytics, Sentinel) that makes it straightforward to collect logs, enrich data (GeoIP), and visualize attacker behavior with minimal infrastructure overhead.
 
 ---
 
-**Note:** This README is a template. Insert your own screenshots, data, and findings into the respective folders.
+##  Step-by-Step Methodology (what was done and why)
+
+### 1. Subscription and Resource Setup
+- Created an Azure subscription and a dedicated resource group (`JM_SOC_Lab`) to isolate the experiment.  
+- Rationale: keeping all resources grouped makes it easy to manage lifecycle, billing, and deletion. It also reduces the risk of accidentally exposing production resources.
+
+### 2. Virtual Machine Deployment (the attack surface)
+- Deployed a Windows VM named **CORP-Net-Middle** with a public IP (48.220.32.93).  
+- Rationale: A Windows endpoint with RDP open is a realistic and commonly encountered attack surface in enterprise environments.
+
+### 3. Network Security Group (NSG) configuration
+- Configured the NSG to allow inbound RDP (3389/TCP) from any source.  
+- Rationale: Intentionally opening RDP causes the VM to be visible to internet-wide scanners and attackers, enabling collection of unsolicited malicious traffic.
+
+### 4. Validating reachability
+- Performed connectivity tests (ping, RDP connection attempts) to ensure the VM was reachable.  
+- Rationale: Confirming reachability ensures that subsequent logs represent real inbound attempts rather than failing configuration.
+
+### 5. Generating and Capturing Events
+- Conducted controlled failed logins (`employee`) and confirmed Event ID 4625 appeared in Windows Security logs.  
+- Rationale: Verifying logging ensures the monitoring pipeline captures authentication failures once live attacks begin.
+
+### 6. Centralized Logging via Log Analytics (LAW)
+- Created a Log Analytics Workspace and installed the Azure Monitor Agent on the VM.  
+- Rationale: LAW provides a centralized, searchable store for events; it is required for Sentinel integration.
+
+### 7. Microsoft Sentinel integration
+- Enabled Sentinel and connected it to LAW. Configured the **Windows Security Events** connector via AMA.  
+- Rationale: Sentinel provides KQL-based querying, automated enrichment, and workbooks for visualization—tools commonly used by SOC analysts.
+
+### 8. GeoIP enrichment (watchlist)
+- Imported `geoip-summarized.csv` as a Sentinel Watchlist and used `ipv4_lookup()` in KQL to convert IP addresses to city/country coordinates.  
+- Rationale: Adding geographic metadata allows the visualization of attacker distribution on a map and supports geographic analysis.
+
+### 9. Attack Map workbook
+- Built a workbook (map.json) in Sentinel to visualize failed login attempts by location and time.  
+- Rationale: A visual attack map makes patterns obvious (clusters, spikes, repeat offenders) and is helpful for reporting and teaching.
+
+---
+
+##  What this dataset represents
+- The collected logs and PCAPs represent **unsolicited inbound traffic** that reached the honeypot VM while it was exposed.  
+- This is *opportunistic* attack traffic — not traffic that was generated by our lab — and therefore it provides insight into real attacker behavior against exposed RDP endpoints.
+
+Important notes about the dataset:
+- The logs include IP addresses, timestamps, event types (4625), and sometimes user account names used during login attempts.  
+- Raw PCAPs or logs may contain sensitive metadata. Treat them as potentially sensitive and follow anonymization guidelines before sharing.
+
+---
+
+##  Expected Analyses & Outcomes
+By analyzing the collected data we can:
+- Measure arrival time of first attacks after exposure.
+- Identify top source IP addresses and their geolocation.
+- Detect common username and password guessing patterns.
+- Visualize attack volumes over time (time series) and geographically (attack map).
+- Demonstrate how Azure tools (LAW + Sentinel + Watchlists) can form a simple, effective SOC pipeline.
+
+---
+
+##  Ethics, Safety & Data Handling
+- The honeypot was deployed on Azure within a dedicated resource group owned by the researcher.  
+- No production systems or third-party customer data were involved.  
+- All raw logs and PCAP files are stored locally or within controlled Azure storage — not publicly shared.  
+- Prior to any external sharing, IP addresses and other PII will be anonymized: truncation, hashing, or removal may be used depending on the audience.
+
+If you plan to extend the project (longer data collection or sharing results), consider documenting retention policies, data deletion schedules, and a clear consent/ethics statement.
+
+---
+
+##  Cost & Operational Notes
+- Azure compute and storage have billing implications. The chosen VM (`Standard_D2s_v3`) costs roughly $80–90/month if left running continuously.  
+- Practical approach: create, test, collect data for a limited window (hours/days), then deallocate and delete resources to minimize costs.
+
+---
+
+##  Reproduction & Next Steps
+To reproduce or extend this study:
+1. Recreate the VM + NSG and LAW as described in the main README.  
+2. Start packet capture or enable NSG flow logs for deeper analysis.  
+3. Run KQL queries to extract Event ID 4625 and perform ipv4_lookup() against the watchlist.  
+4. Aggregate and visualize results in a workbook.  
+5. (Optional) Deploy additional honeypots with different services (SSH, HTTP) and compare attacker behavior.
+
+---
+
+##  Files included (placeholders)
+- `screenshots/` – screenshots of VM, NSG, Event Viewer, Sentinel queries, attack map.  
+- `logs/` – `nsg_flowlog.json`, `securityevents_4625.csv`, `geoip-summarized.csv` (watchlist).  
+- `scripts/` – `az_commands.txt`, `kql_queries.txt`, `map.json`.  
+- `figures/` – derived visualizations (geolocation map, top IPs, timelines).
+
+--- 
+
+##  Final note
+The value of this project is not just in seeing that attacks occur — it is in using managed cloud tooling to **collect, enrich, and analyze real attack traffic quickly and reproducibly**. Azure gives a compact lab where SOC workflows can be practiced end-to-end without building complex on-prem infrastructure.
