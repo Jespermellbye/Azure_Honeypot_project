@@ -69,14 +69,7 @@ By analyzing the collected data we can:
 - Demonstrate how Azure tools (LAW + Sentinel + Watchlists) can form a simple, effective SOC pipeline.
 
 ---
-
-##  Files included (placeholders)
-- `screenshots/` – screenshots of VM, NSG, Event Viewer, Sentinel queries, attack map.  
-- `logs/` – `nsg_flowlog.json`, `securityevents_4625.csv`, `geoip-summarized.csv` (watchlist).  
-- `scripts/` – `az_commands.txt`, `kql_queries.txt`, `map.json`.  
-- `figures/` – derived visualizations (geolocation map, top IPs, timelines).
-
-## References
+### References
 
 - ChatGPT (OpenAI). (2025). Conversation and documentation assistance for the Azure Honeypot project  
 - YouTube — Josh Makador, <https://youtu.be/g5JL2RIbThM?si=Fz2lI49c_wk6ghTy
