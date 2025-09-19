@@ -51,6 +51,7 @@ This project demonstrates how to deploy and operate a simple honeypot in Microso
 - Why: Seeing attack data on a map provides an immediate and intuitive understanding of the scale and origin of the attacks. It helps to identify clusters, spot repeated attackers from certain regions, and makes the findings more engaging and useful for reporting or presentations.
 
 
+
 ---
 ## Results from the honeypot
 The map shows the geolocation of failed login attempts (Event ID 4625) against our honeypot VM.
