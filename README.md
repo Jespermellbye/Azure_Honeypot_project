@@ -58,7 +58,14 @@ This project demonstrates how to deploy and operate a simple honeypot in Microso
 
 Important notes about the dataset:
 - The logs include IP addresses, timestamps, event types (4625), and sometimes user account names used during login attempts.  
-- Raw PCAPs or logs may contain sensitive metadata. Treat them as potentially sensitive and follow anonymization guidelines before sharing.
+
+### Results from the honeypot
+The map shows the geolocation of failed login attempts (Event ID 4625) against our honeypot VM.
+During the observation period, I recorded (TOTAL_ATTEMPTS) attempts from (UNIQUE_IP_COUNT) unique IP addresses.
+The largest clusters on the map come from (COUNTRY_1), (COUNTRY_2), and (COUNTRY_3), suggesting that most of the traffic came from automated RDP brute-force scanners. Several points represent repeated attempts from the same IP ranges, and the time-series data (see figure) shows clear peaks outside normal working hours — typical for bot-driven traffic.
+
+It is important to note that GeoIP data only provides an estimate of geographic origin and may be inaccurate for some IP ranges. The map should therefore be used as a visual aid rather than absolute proof.
+
 
 ---
 
@@ -103,8 +110,3 @@ To reproduce or extend this study:
 - `logs/` – `nsg_flowlog.json`, `securityevents_4625.csv`, `geoip-summarized.csv` (watchlist).  
 - `scripts/` – `az_commands.txt`, `kql_queries.txt`, `map.json`.  
 - `figures/` – derived visualizations (geolocation map, top IPs, timelines).
-
---- 
-
-##  Final note
-The value of this project is not just in seeing that attacks occur — it is in using managed cloud tooling to **collect, enrich, and analyze real attack traffic quickly and reproducibly**. Azure gives a compact lab where SOC workflows can be practiced end-to-end without building complex on-prem infrastructure.
