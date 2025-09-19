@@ -64,14 +64,7 @@ The largest clusters on the map come from UK, Spain, and France, suggesting that
 It is important to note that GeoIP data only provides an estimate of geographic origin and may be inaccurate for some IP ranges. As seen in the `kql_results_location.png`, there is sign that IP's from India and China was used aswell. The map should therefore be used as a visual aid rather than absolute proof.
 
 
----
 
-##  Expected Analyses & Outcomes
-By analyzing the collected data we can:
-- Measure arrival time of first attacks after exposure.
-- Identify top source IP addresses and their geolocation.
-- Visualize attack volumes over time (time series) and geographically (attack map).
-- Demonstrate how Azure tools (LAW + Sentinel + Watchlists) can form a simple, effective SOC pipeline.
 
 ---
 ### References
